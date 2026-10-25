@@ -1,0 +1,541 @@
+Process 0 (that is, the initial process):
+{1}new skI: sskey;
+{2}out(net, spk(skI));
+{3}new skV1: skey;
+{4}insert vkeys(V1,pk(skV1));
+{5}out(net, pk(skV1));
+{6}new skV2: skey;
+{7}insert vkeys(V2,pk(skV2));
+{8}out(net, pk(skV2));
+{9}out(net, skV2);
+(
+    {10}!
+    {11}let skI_1: sskey = skI in
+    {12}in(appch, (ch: channel,hname: bitstring,hbirth: bitstring,hphoto: bitstring,v: vid,p: purpose));
+    {18}get vkeys(=v,pkv: pkey) in
+    {13}new serial: bitstring;
+    {14}let c: bitstring = cred(hname,hbirth,hphoto,p,serial) in
+    {15}let sg: bitstring = sign(skI_1,c) in
+    {16}event Issued(c,v);
+    {17}out(ch, aenc(pkv,(c,sg)))
+) | (
+    {19}!
+    {20}let hname_1: bitstring = name1 in
+    {21}let hbirth_1: bitstring = birth1 in
+    {22}let hphoto_1: bitstring = photo1 in
+    {23}let v_1: vid = V1 in
+    {24}let p_1: purpose = EXAM in
+    {25}new ch_1: channel;
+    {26}out(appch, (ch_1,hname_1,hbirth_1,hphoto_1,v_1,p_1));
+    {27}in(ch_1, token: bitstring);
+    {28}out(net, token)
+) | (
+    {29}!
+    {30}let hname_2: bitstring = name2 in
+    {31}let hbirth_2: bitstring = birth2 in
+    {32}let hphoto_2: bitstring = photo2 in
+    {33}let v_2: vid = V2 in
+    {34}let p_2: purpose = VISIT in
+    {35}new ch_2: channel;
+    {36}out(appch, (ch_2,hname_2,hbirth_2,hphoto_2,v_2,p_2));
+    {37}in(ch_2, token_1: bitstring);
+    {38}out(net, token_1)
+) | (
+    {39}!
+    {40}let v_3: vid = V1 in
+    {41}let skv: skey = skV1 in
+    {42}let pkI: spkey = spk(skI) in
+    {43}in(net, x: bitstring);
+    {44}let (c_1: bitstring,sg_1: bitstring) = adec(skv,x) in
+    {45}if (checksign(pkI,sg_1,c_1) = true) then
+    {46}let cred(n: bitstring,b: bitstring,ph: bitstring,p_3: purpose,s: bitstring) = c_1 in
+    {47}event Accepted(c_1,v_3)
+) | (
+    {48}!
+    {49}let v_4: vid = V2 in
+    {50}let skv_1: skey = skV2 in
+    {51}let pkI_1: spkey = spk(skI) in
+    {52}in(net, x_1: bitstring);
+    {53}let (c_2: bitstring,sg_2: bitstring) = adec(skv_1,x_1) in
+    {54}if (checksign(pkI_1,sg_2,c_2) = true) then
+    {55}let cred(n_1: bitstring,b_1: bitstring,ph_1: bitstring,p_4: purpose,s_1: bitstring) = c_2 in
+    {56}event Accepted(c_2,v_4)
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new skI: sskey;
+{2}out(net, spk(skI));
+{3}new skV1: skey;
+{4}insert vkeys(V1,pk(skV1));
+{5}out(net, pk(skV1));
+{6}new skV2: skey;
+{7}insert vkeys(V2,pk(skV2));
+{8}out(net, pk(skV2));
+{9}out(net, skV2);
+(
+    {10}!
+    {12}in(appch, (ch: channel,hname: bitstring,hbirth: bitstring,hphoto: bitstring,v: vid,p: purpose));
+    {18}get vkeys(=v,pkv: pkey) in
+    {13}new serial: bitstring;
+    {14}let c: bitstring = cred(hname,hbirth,hphoto,p,serial) in
+    {16}event Issued(c,v);
+    {11}let skI_1: sskey = skI in
+    {15}let sg: bitstring = sign(skI_1,c) in
+    {17}out(ch, aenc(pkv,(c,sg)))
+) | (
+    {19}!
+    {25}new ch_1: channel;
+    {24}let p_1: purpose = EXAM in
+    {23}let v_1: vid = V1 in
+    {22}let hphoto_1: bitstring = photo1 in
+    {21}let hbirth_1: bitstring = birth1 in
+    {20}let hname_1: bitstring = name1 in
+    {26}out(appch, (ch_1,hname_1,hbirth_1,hphoto_1,v_1,p_1));
+    {27}in(ch_1, token: bitstring);
+    {28}out(net, token)
+) | (
+    {29}!
+    {35}new ch_2: channel;
+    {34}let p_2: purpose = VISIT in
+    {33}let v_2: vid = V2 in
+    {32}let hphoto_2: bitstring = photo2 in
+    {31}let hbirth_2: bitstring = birth2 in
+    {30}let hname_2: bitstring = name2 in
+    {36}out(appch, (ch_2,hname_2,hbirth_2,hphoto_2,v_2,p_2));
+    {37}in(ch_2, token_1: bitstring);
+    {38}out(net, token_1)
+) | (
+    {39}!
+    {43}in(net, x: bitstring);
+    {41}let skv: skey = skV1 in
+    {44}let (c_1: bitstring,sg_1: bitstring) = adec(skv,x) in
+    {42}let pkI: spkey = spk(skI) in
+    {45}if (checksign(pkI,sg_1,c_1) = true) then
+    {46}let cred(n: bitstring,b: bitstring,ph: bitstring,p_3: purpose,s: bitstring) = c_1 in
+    {40}let v_3: vid = V1 in
+    {47}event Accepted(c_1,v_3)
+) | (
+    {48}!
+    {52}in(net, x_1: bitstring);
+    {50}let skv_1: skey = skV2 in
+    {53}let (c_2: bitstring,sg_2: bitstring) = adec(skv_1,x_1) in
+    {51}let pkI_1: spkey = spk(skI) in
+    {54}if (checksign(pkI_1,sg_2,c_2) = true) then
+    {55}let cred(n_1: bitstring,b_1: bitstring,ph_1: bitstring,p_4: purpose,s_1: bitstring) = c_2 in
+    {49}let v_4: vid = V2 in
+    {56}event Accepted(c_2,v_4)
+)
+
+-- Query event(Accepted(c_3,v_5)) ==> event(Issued(c_3,v_5)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query event(Accepted(c_3,v_5)) ==> event(Issued(c_3,v_5))
+goal reachable: b-event(Issued(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V2[])) -> event(Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[]))
+Abbreviations:
+ch_3 = ch_2[!1 = @sid]
+serial_1 = serial[pkv = pk(skV2[]),p = VISIT[],v = V2[],hphoto = photo2[],hbirth = birth2[],hname = name2[],ch = ch_3,!1 = @sid_1]
+
+Derivation:
+Abbreviations:
+ch_3 = ch_2[!1 = @sid]
+serial_1 = serial[pkv = pk(skV2[]),p = VISIT[],v = V2[],hphoto = photo2[],hbirth = birth2[],hname = name2[],ch = ch_3,!1 = @sid_1]
+
+1. The message (ch_3,name2[],birth2[],photo2[],V2[],VISIT[]) may be sent on channel appch[] at output {36}.
+mess(appch[],(ch_3,name2[],birth2[],photo2[],V2[],VISIT[])).
+
+2. The entry vkeys(V2[],pk(skV2[])) may be inserted in a table at insert {7}.
+table(vkeys(V2[],pk(skV2[]))).
+
+3. The message (ch_3,name2[],birth2[],photo2[],V2[],VISIT[]) that may be sent on channel appch[] by 1 may be received at input {12}.
+The entry vkeys(V2[],pk(skV2[])) that may be in a table by 2 may be read at get {18}.
+The event Issued(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V2[]) may be executed at {16}.
+So the message aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))) may be sent on channel ch_3 at output {17}.
+mess(ch_3,aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))))).
+
+4. The message aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))) that may be sent on channel ch_3 by 3 may be received at input {37}.
+So the message aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))) may be sent to the attacker at output {38}.
+attacker(aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))))).
+
+5. The message skV2[] may be sent to the attacker at output {9}.
+attacker(skV2[]).
+
+6. By 5, the attacker may know skV2[].
+By 4, the attacker may know aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))).
+Using the function adec the attacker may obtain (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+attacker((cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))).
+
+7. By 6, the attacker may know (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+Using the function 2-proj-2-tuple the attacker may obtain sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)).
+attacker(sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+
+8. By 6, the attacker may know (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+Using the function 1-proj-2-tuple the attacker may obtain cred(name2[],birth2[],photo2[],VISIT[],serial_1).
+attacker(cred(name2[],birth2[],photo2[],VISIT[],serial_1)).
+
+9. By 8, the attacker may know cred(name2[],birth2[],photo2[],VISIT[],serial_1).
+Using the function 5-proj-cred the attacker may obtain serial_1.
+attacker(serial_1).
+
+10. The attacker initially knows VISIT[].
+attacker(VISIT[]).
+
+11. The attacker initially knows photo2[].
+attacker(photo2[]).
+
+12. The attacker initially knows birth2[].
+attacker(birth2[]).
+
+13. The attacker initially knows name2[].
+attacker(name2[]).
+
+14. By 13, the attacker may know name2[].
+By 12, the attacker may know birth2[].
+By 11, the attacker may know photo2[].
+By 10, the attacker may know VISIT[].
+By 9, the attacker may know serial_1.
+Using the function cred the attacker may obtain cred(name2[],birth2[],photo2[],VISIT[],serial_1).
+attacker(cred(name2[],birth2[],photo2[],VISIT[],serial_1)).
+
+15. By 14, the attacker may know cred(name2[],birth2[],photo2[],VISIT[],serial_1).
+By 7, the attacker may know sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)).
+Using the function 2-tuple the attacker may obtain (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+attacker((cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))).
+
+16. The message pk(skV1[]) may be sent to the attacker at output {5}.
+attacker(pk(skV1[])).
+
+17. By 16, the attacker may know pk(skV1[]).
+By 15, the attacker may know (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+Using the function aenc the attacker may obtain aenc(pk(skV1[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))).
+attacker(aenc(pk(skV1[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))))).
+
+18. The message aenc(pk(skV1[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))) that the attacker may have by 17 may be received at input {43}.
+So event Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[]) may be executed at {47}.
+event(Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[])).
+
+19. By 18, event(Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[])).
+The goal is reached, represented in the following fact:
+event(Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[])).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new skI: sskey creating skI_2 at {1}
+
+out(net, ~M) with ~M = spk(skI_2) at {2}
+
+new skV1: skey creating skV1_1 at {3}
+
+insert vkeys(V1,pk(skV1_1)) at {4}
+
+out(net, ~M_1) with ~M_1 = pk(skV1_1) at {5}
+
+new skV2: skey creating skV2_1 at {6}
+
+insert vkeys(V2,pk(skV2_1)) at {7}
+
+out(net, ~M_2) with ~M_2 = pk(skV2_1) at {8}
+
+out(net, ~M_3) with ~M_3 = skV2_1 at {9}
+
+new ch_2: channel creating ch_4 at {35} in copy a
+
+out(appch, (ch_4,name2,birth2,photo2,V2,VISIT)) at {36} in copy a received at {12} in copy a_1
+
+get vkeys(V2,pk(skV2_1)) at {18} in copy a_1
+
+new serial: bitstring creating serial_2 at {13} in copy a_1
+
+event Issued(cred(name2,birth2,photo2,VISIT,serial_2),V2) at {16} in copy a_1
+
+out(ch_4, aenc(pk(skV2_1),(cred(name2,birth2,photo2,VISIT,serial_2),sign(skI_2,cred(name2,birth2,photo2,VISIT,serial_2))))) at {17} in copy a_1 received at {37} in copy a
+
+out(net, ~M_4) with ~M_4 = aenc(pk(skV2_1),(cred(name2,birth2,photo2,VISIT,serial_2),sign(skI_2,cred(name2,birth2,photo2,VISIT,serial_2)))) at {38} in copy a
+
+in(net, aenc(~M_1,(cred(name2,birth2,photo2,VISIT,5-proj-cred(1-proj-2-tuple(adec(~M_3,~M_4)))),2-proj-2-tuple(adec(~M_3,~M_4))))) with aenc(~M_1,(cred(name2,birth2,photo2,VISIT,5-proj-cred(1-proj-2-tuple(adec(~M_3,~M_4)))),2-proj-2-tuple(adec(~M_3,~M_4)))) = aenc(pk(skV1_1),(cred(name2,birth2,photo2,VISIT,serial_2),sign(skI_2,cred(name2,birth2,photo2,VISIT,serial_2)))) at {43} in copy a_2
+
+event Accepted(cred(name2,birth2,photo2,VISIT,serial_2),V1) at {47} in copy a_2 (goal)
+
+The event Accepted(cred(name2,birth2,photo2,VISIT,serial_2),V1) is executed at {47} in copy a_2.
+A trace has been found.
+RESULT event(Accepted(c_3,v_5)) ==> event(Issued(c_3,v_5)) is false.
+-- Query event(Accepted(c_3,V1[])) ==> event(Issued(c_3,V1[])) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query event(Accepted(c_3,V1[])) ==> event(Issued(c_3,V1[]))
+goal reachable: b-event(Issued(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V2[])) -> event(Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[]))
+Abbreviations:
+ch_3 = ch_2[!1 = @sid]
+serial_1 = serial[pkv = pk(skV2[]),p = VISIT[],v = V2[],hphoto = photo2[],hbirth = birth2[],hname = name2[],ch = ch_3,!1 = @sid_1]
+
+Derivation:
+Abbreviations:
+ch_3 = ch_2[!1 = @sid]
+serial_1 = serial[pkv = pk(skV2[]),p = VISIT[],v = V2[],hphoto = photo2[],hbirth = birth2[],hname = name2[],ch = ch_3,!1 = @sid_1]
+
+1. The message (ch_3,name2[],birth2[],photo2[],V2[],VISIT[]) may be sent on channel appch[] at output {36}.
+mess(appch[],(ch_3,name2[],birth2[],photo2[],V2[],VISIT[])).
+
+2. The entry vkeys(V2[],pk(skV2[])) may be inserted in a table at insert {7}.
+table(vkeys(V2[],pk(skV2[]))).
+
+3. The message (ch_3,name2[],birth2[],photo2[],V2[],VISIT[]) that may be sent on channel appch[] by 1 may be received at input {12}.
+The entry vkeys(V2[],pk(skV2[])) that may be in a table by 2 may be read at get {18}.
+The event Issued(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V2[]) may be executed at {16}.
+So the message aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))) may be sent on channel ch_3 at output {17}.
+mess(ch_3,aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))))).
+
+4. The message aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))) that may be sent on channel ch_3 by 3 may be received at input {37}.
+So the message aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))) may be sent to the attacker at output {38}.
+attacker(aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))))).
+
+5. The message skV2[] may be sent to the attacker at output {9}.
+attacker(skV2[]).
+
+6. By 5, the attacker may know skV2[].
+By 4, the attacker may know aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))).
+Using the function adec the attacker may obtain (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+attacker((cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))).
+
+7. By 6, the attacker may know (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+Using the function 2-proj-2-tuple the attacker may obtain sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)).
+attacker(sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+
+8. By 6, the attacker may know (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+Using the function 1-proj-2-tuple the attacker may obtain cred(name2[],birth2[],photo2[],VISIT[],serial_1).
+attacker(cred(name2[],birth2[],photo2[],VISIT[],serial_1)).
+
+9. By 8, the attacker may know cred(name2[],birth2[],photo2[],VISIT[],serial_1).
+Using the function 5-proj-cred the attacker may obtain serial_1.
+attacker(serial_1).
+
+10. The attacker initially knows VISIT[].
+attacker(VISIT[]).
+
+11. The attacker initially knows photo2[].
+attacker(photo2[]).
+
+12. The attacker initially knows birth2[].
+attacker(birth2[]).
+
+13. The attacker initially knows name2[].
+attacker(name2[]).
+
+14. By 13, the attacker may know name2[].
+By 12, the attacker may know birth2[].
+By 11, the attacker may know photo2[].
+By 10, the attacker may know VISIT[].
+By 9, the attacker may know serial_1.
+Using the function cred the attacker may obtain cred(name2[],birth2[],photo2[],VISIT[],serial_1).
+attacker(cred(name2[],birth2[],photo2[],VISIT[],serial_1)).
+
+15. By 14, the attacker may know cred(name2[],birth2[],photo2[],VISIT[],serial_1).
+By 7, the attacker may know sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)).
+Using the function 2-tuple the attacker may obtain (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+attacker((cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))).
+
+16. The message pk(skV1[]) may be sent to the attacker at output {5}.
+attacker(pk(skV1[])).
+
+17. By 16, the attacker may know pk(skV1[]).
+By 15, the attacker may know (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+Using the function aenc the attacker may obtain aenc(pk(skV1[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))).
+attacker(aenc(pk(skV1[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))))).
+
+18. The message aenc(pk(skV1[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))) that the attacker may have by 17 may be received at input {43}.
+So event Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[]) may be executed at {47}.
+event(Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[])).
+
+19. By 18, event(Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[])).
+The goal is reached, represented in the following fact:
+event(Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[])).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new skI: sskey creating skI_2 at {1}
+
+out(net, ~M) with ~M = spk(skI_2) at {2}
+
+new skV1: skey creating skV1_1 at {3}
+
+insert vkeys(V1,pk(skV1_1)) at {4}
+
+out(net, ~M_1) with ~M_1 = pk(skV1_1) at {5}
+
+new skV2: skey creating skV2_1 at {6}
+
+insert vkeys(V2,pk(skV2_1)) at {7}
+
+out(net, ~M_2) with ~M_2 = pk(skV2_1) at {8}
+
+out(net, ~M_3) with ~M_3 = skV2_1 at {9}
+
+new ch_2: channel creating ch_4 at {35} in copy a
+
+out(appch, (ch_4,name2,birth2,photo2,V2,VISIT)) at {36} in copy a received at {12} in copy a_1
+
+get vkeys(V2,pk(skV2_1)) at {18} in copy a_1
+
+new serial: bitstring creating serial_2 at {13} in copy a_1
+
+event Issued(cred(name2,birth2,photo2,VISIT,serial_2),V2) at {16} in copy a_1
+
+out(ch_4, aenc(pk(skV2_1),(cred(name2,birth2,photo2,VISIT,serial_2),sign(skI_2,cred(name2,birth2,photo2,VISIT,serial_2))))) at {17} in copy a_1 received at {37} in copy a
+
+out(net, ~M_4) with ~M_4 = aenc(pk(skV2_1),(cred(name2,birth2,photo2,VISIT,serial_2),sign(skI_2,cred(name2,birth2,photo2,VISIT,serial_2)))) at {38} in copy a
+
+in(net, aenc(~M_1,(cred(name2,birth2,photo2,VISIT,5-proj-cred(1-proj-2-tuple(adec(~M_3,~M_4)))),2-proj-2-tuple(adec(~M_3,~M_4))))) with aenc(~M_1,(cred(name2,birth2,photo2,VISIT,5-proj-cred(1-proj-2-tuple(adec(~M_3,~M_4)))),2-proj-2-tuple(adec(~M_3,~M_4)))) = aenc(pk(skV1_1),(cred(name2,birth2,photo2,VISIT,serial_2),sign(skI_2,cred(name2,birth2,photo2,VISIT,serial_2)))) at {43} in copy a_2
+
+event Accepted(cred(name2,birth2,photo2,VISIT,serial_2),V1) at {47} in copy a_2 (goal)
+
+The event Accepted(cred(name2,birth2,photo2,VISIT,serial_2),V1) is executed at {47} in copy a_2.
+A trace has been found.
+RESULT event(Accepted(c_3,V1[])) ==> event(Issued(c_3,V1[])) is false.
+-- Query not event(Accepted(c_3,V1[])) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(Accepted(c_3,V1[]))
+goal reachable: event(Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[]))
+Abbreviations:
+ch_3 = ch_2[!1 = @sid]
+serial_1 = serial[pkv = pk(skV2[]),p = VISIT[],v = V2[],hphoto = photo2[],hbirth = birth2[],hname = name2[],ch = ch_3,!1 = @sid_1]
+
+Derivation:
+Abbreviations:
+ch_3 = ch_2[!1 = @sid]
+serial_1 = serial[pkv = pk(skV2[]),p = VISIT[],v = V2[],hphoto = photo2[],hbirth = birth2[],hname = name2[],ch = ch_3,!1 = @sid_1]
+
+1. The message (ch_3,name2[],birth2[],photo2[],V2[],VISIT[]) may be sent on channel appch[] at output {36}.
+mess(appch[],(ch_3,name2[],birth2[],photo2[],V2[],VISIT[])).
+
+2. The entry vkeys(V2[],pk(skV2[])) may be inserted in a table at insert {7}.
+table(vkeys(V2[],pk(skV2[]))).
+
+3. The message (ch_3,name2[],birth2[],photo2[],V2[],VISIT[]) that may be sent on channel appch[] by 1 may be received at input {12}.
+The entry vkeys(V2[],pk(skV2[])) that may be in a table by 2 may be read at get {18}.
+So the message aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))) may be sent on channel ch_3 at output {17}.
+mess(ch_3,aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))))).
+
+4. The message aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))) that may be sent on channel ch_3 by 3 may be received at input {37}.
+So the message aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))) may be sent to the attacker at output {38}.
+attacker(aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))))).
+
+5. The message skV2[] may be sent to the attacker at output {9}.
+attacker(skV2[]).
+
+6. By 5, the attacker may know skV2[].
+By 4, the attacker may know aenc(pk(skV2[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))).
+Using the function adec the attacker may obtain (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+attacker((cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))).
+
+7. By 6, the attacker may know (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+Using the function 2-proj-2-tuple the attacker may obtain sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)).
+attacker(sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+
+8. By 6, the attacker may know (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+Using the function 1-proj-2-tuple the attacker may obtain cred(name2[],birth2[],photo2[],VISIT[],serial_1).
+attacker(cred(name2[],birth2[],photo2[],VISIT[],serial_1)).
+
+9. By 8, the attacker may know cred(name2[],birth2[],photo2[],VISIT[],serial_1).
+Using the function 5-proj-cred the attacker may obtain serial_1.
+attacker(serial_1).
+
+10. The attacker initially knows VISIT[].
+attacker(VISIT[]).
+
+11. The attacker initially knows photo2[].
+attacker(photo2[]).
+
+12. The attacker initially knows birth2[].
+attacker(birth2[]).
+
+13. The attacker initially knows name2[].
+attacker(name2[]).
+
+14. By 13, the attacker may know name2[].
+By 12, the attacker may know birth2[].
+By 11, the attacker may know photo2[].
+By 10, the attacker may know VISIT[].
+By 9, the attacker may know serial_1.
+Using the function cred the attacker may obtain cred(name2[],birth2[],photo2[],VISIT[],serial_1).
+attacker(cred(name2[],birth2[],photo2[],VISIT[],serial_1)).
+
+15. By 14, the attacker may know cred(name2[],birth2[],photo2[],VISIT[],serial_1).
+By 7, the attacker may know sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)).
+Using the function 2-tuple the attacker may obtain (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+attacker((cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))).
+
+16. The message pk(skV1[]) may be sent to the attacker at output {5}.
+attacker(pk(skV1[])).
+
+17. By 16, the attacker may know pk(skV1[]).
+By 15, the attacker may know (cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))).
+Using the function aenc the attacker may obtain aenc(pk(skV1[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))).
+attacker(aenc(pk(skV1[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1))))).
+
+18. The message aenc(pk(skV1[]),(cred(name2[],birth2[],photo2[],VISIT[],serial_1),sign(skI[],cred(name2[],birth2[],photo2[],VISIT[],serial_1)))) that the attacker may have by 17 may be received at input {43}.
+So event Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[]) may be executed at {47}.
+event(Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[])).
+
+19. By 18, event(Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[])).
+The goal is reached, represented in the following fact:
+event(Accepted(cred(name2[],birth2[],photo2[],VISIT[],serial_1),V1[])).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new skI: sskey creating skI_2 at {1}
+
+out(net, ~M) with ~M = spk(skI_2) at {2}
+
+new skV1: skey creating skV1_1 at {3}
+
+insert vkeys(V1,pk(skV1_1)) at {4}
+
+out(net, ~M_1) with ~M_1 = pk(skV1_1) at {5}
+
+new skV2: skey creating skV2_1 at {6}
+
+insert vkeys(V2,pk(skV2_1)) at {7}
+
+out(net, ~M_2) with ~M_2 = pk(skV2_1) at {8}
+
+out(net, ~M_3) with ~M_3 = skV2_1 at {9}
+
+new ch_2: channel creating ch_4 at {35} in copy a
+
+out(appch, (ch_4,name2,birth2,photo2,V2,VISIT)) at {36} in copy a received at {12} in copy a_1
+
+get vkeys(V2,pk(skV2_1)) at {18} in copy a_1
+
+new serial: bitstring creating serial_2 at {13} in copy a_1
+
+event Issued(cred(name2,birth2,photo2,VISIT,serial_2),V2) at {16} in copy a_1
+
+out(ch_4, aenc(pk(skV2_1),(cred(name2,birth2,photo2,VISIT,serial_2),sign(skI_2,cred(name2,birth2,photo2,VISIT,serial_2))))) at {17} in copy a_1 received at {37} in copy a
+
+out(net, ~M_4) with ~M_4 = aenc(pk(skV2_1),(cred(name2,birth2,photo2,VISIT,serial_2),sign(skI_2,cred(name2,birth2,photo2,VISIT,serial_2)))) at {38} in copy a
+
+in(net, aenc(~M_1,(cred(name2,birth2,photo2,VISIT,5-proj-cred(1-proj-2-tuple(adec(~M_3,~M_4)))),2-proj-2-tuple(adec(~M_3,~M_4))))) with aenc(~M_1,(cred(name2,birth2,photo2,VISIT,5-proj-cred(1-proj-2-tuple(adec(~M_3,~M_4)))),2-proj-2-tuple(adec(~M_3,~M_4)))) = aenc(pk(skV1_1),(cred(name2,birth2,photo2,VISIT,serial_2),sign(skI_2,cred(name2,birth2,photo2,VISIT,serial_2)))) at {43} in copy a_2
+
+event Accepted(cred(name2,birth2,photo2,VISIT,serial_2),V1) at {47} in copy a_2 (goal)
+
+The event Accepted(cred(name2,birth2,photo2,VISIT,serial_2),V1) is executed at {47} in copy a_2.
+A trace has been found.
+RESULT not event(Accepted(c_3,V1[])) is false.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query event(Accepted(c_3,v_5)) ==> event(Issued(c_3,v_5)) is false.
+
+Query event(Accepted(c_3,V1[])) ==> event(Issued(c_3,V1[])) is false.
+
+Query not event(Accepted(c_3,V1[])) is false.
+
+--------------------------------------------------------------
+

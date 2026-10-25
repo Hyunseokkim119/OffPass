@@ -1,0 +1,92 @@
+(* =====================================================================
+   OffPass - Offline Derived Credential (ODC) for Korean Mobile ID
+   ProVerif model (ProVerif 2.05 syntax)
+   Parties : Issuer I (mobile-ID issuing server), Holder H (wallet app),
+             Verifier V1 (honest venue, e.g. exam hall), V2 (attacker-controlled venue)
+   Medium  : the printed QR is PUBLIC (channel net) - anyone may photograph it
+   Goals   : (G1) PII secrecy against everyone but the designated verifier
+             (G2) unforgeability - V accepts only credentials issued by I
+             (G3) venue binding  - a credential issued for V2 is never accepted at V1
+                                   (re-encryption / cross-venue replay resistance)
+   ===================================================================== *)
+
+type skey.   type pkey.      (* HPKE / ECIES key pair of a verifier      *)
+type sskey.  type spkey.     (* ES256 signing key pair of the issuer     *)
+type vid.                    (* verifier identifier (venue binding)      *)
+type purpose.
+
+free net: channel.                       (* public network / printed QR *)
+free appch: channel [private].           (* holder app <-> issuer (TLS + app auth, abstracted) *)
+
+(* ---- Public-key encryption (HPKE: DHKEM(P-256)+HKDF+AES-GCM, abstracted) ---- *)
+fun pk(skey): pkey.
+fun aenc(pkey, bitstring): bitstring.
+reduc forall k: skey, m: bitstring; adec(k, aenc(pk(k), m)) = m.
+
+(* ---- Digital signature (COSE_Sign1 / ES256, abstracted) ---- *)
+fun spk(sskey): spkey.
+fun sign(sskey, bitstring): bitstring.
+reduc forall k: sskey, m: bitstring; checksign(spk(k), sign(k, m), m) = true.
+reduc forall k: sskey, m: bitstring; getmess(sign(k, m)) = m.
+
+(* ---- Credential structure: name, birth, photo, verifierId, purpose, serial ---- *)
+fun cred(bitstring, bitstring, bitstring, vid, purpose, bitstring): bitstring [data].
+
+(* ---- Holder H1 (honest, uses only the honest venue V1) PII ---- *)
+free name1, birth1, photo1: bitstring [private].
+(* ---- Holder H2 (uses the attacker-controlled venue V2); PII is public ---- *)
+free name2, birth2, photo2: bitstring.
+
+free V1, V2: vid.
+free EXAM, VISIT: purpose.
+
+table vkeys(vid, pkey).                  (* issuer's directory of verifier public keys *)
+
+event Issued(bitstring, vid).            (* issuer issued credential c bound to venue v *)
+event Accepted(bitstring, vid).          (* venue v accepted credential c *)
+
+(* ---------------- Security queries ---------------- *)
+(* G1: PII of H1 never leaks (printed QR is public, V2 is compromised) *)
+query attacker(photo1).
+query attacker(name1).
+query attacker(birth1).
+(* G2: every accepted credential was issued by I for that very venue *)
+query c: bitstring, v: vid; event(Accepted(c, v)) ==> event(Issued(c, v)).
+(* G3: credentials of the attacker-controlled venue cannot be laundered into V1 *)
+query c: bitstring; event(Accepted(c, V1)) ==> event(Issued(c, V1)).
+(* Sanity: acceptance at V1 is reachable (expect ProVerif to report "false" = reachable) *)
+query c: bitstring; event(Accepted(c, V1)).
+
+(* ---------------- Processes ---------------- *)
+let Issuer(skI: sskey) =
+  in(appch, (ch: channel, hname: bitstring, hbirth: bitstring, hphoto: bitstring, v: vid, p: purpose));
+  get vkeys(=v, pkv) in
+  new serial: bitstring;
+  let c = cred(hname, hbirth, hphoto, v, p, serial) in
+  let sg = sign(skI, c) in
+  event Issued(c, v);
+  out(ch, aenc(pkv, (c, sg))).
+
+let Holder(hname: bitstring, hbirth: bitstring, hphoto: bitstring, v: vid, p: purpose) =
+  new ch: channel;                       (* per-session response channel (TLS session, abstracted) *)
+  out(appch, (ch, hname, hbirth, hphoto, v, p));
+  in(ch, token: bitstring);
+  out(net, token).                       (* the QR is printed on paper: public *)
+
+let Verifier(v: vid, skv: skey, pkI: spkey) =
+  in(net, x: bitstring);
+  let (c: bitstring, sg: bitstring) = adec(skv, x) in
+  if checksign(pkI, sg, c) = true then
+  let cred(n: bitstring, b: bitstring, ph: bitstring, =v, p: purpose, s: bitstring) = c in
+  event Accepted(c, v).
+
+process
+  new skI: sskey;  out(net, spk(skI));
+  new skV1: skey;  insert vkeys(V1, pk(skV1)); out(net, pk(skV1));
+  new skV2: skey;  insert vkeys(V2, pk(skV2)); out(net, pk(skV2));
+  out(net, skV2);                        (* venue V2 is fully compromised *)
+  ( !Issuer(skI)
+  | !Holder(name1, birth1, photo1, V1, EXAM)
+  | !Holder(name2, birth2, photo2, V2, VISIT)
+  | !Verifier(V1, skV1, spk(skI))
+  | !Verifier(V2, skV2, spk(skI)) )

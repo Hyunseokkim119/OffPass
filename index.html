@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>오프패스(OffPass) PoC — 모바일신분증 오프라인 파생 증표 발급·검증 시뮬레이터</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f4f6fa; --card:#ffffff; --ink:#1b2430; --muted:#5b6675; --line:#d7dde6;
+  --navy:#1F3864; --steel:#4A6FA5; --ice:#E8F0FA; --amber:#C8871A; --ok:#1e7f4f; --okbg:#e6f6ec; --bad:#b3261e; --badbg:#fdecea;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  color-scheme: dark;
+  --bg:#0f1520; --card:#171f2c; --ink:#e8edf5; --muted:#a3adbb; --line:#2c3747;
+  --navy:#9db6e0; --steel:#7f9fd0; --ice:#1d2a3d; --amber:#e3a443; --ok:#5dcc8d; --okbg:#143324; --bad:#ff8a80; --badbg:#3a1a18;
+}}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#0f1520; --card:#171f2c; --ink:#e8edf5; --muted:#a3adbb; --line:#2c3747;
+  --navy:#9db6e0; --steel:#7f9fd0; --ice:#1d2a3d; --amber:#e3a443; --ok:#5dcc8d; --okbg:#143324; --bad:#ff8a80; --badbg:#3a1a18;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;line-height:1.5}
+header{background:var(--navy);color:#fff;padding:14px 18px}
+header h1{margin:0;font-size:1.15rem}
+header p{margin:4px 0 0;font-size:.85rem;opacity:.9}
+main{max-width:1100px;margin:0 auto;padding:14px}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+nav button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600}
+nav button.active{background:var(--steel);border-color:var(--steel);color:#fff}
+section.tab{display:none}
+section.tab.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.card h2{margin:0 0 10px;font-size:1.05rem;color:var(--navy)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:3px}
+input,select,textarea{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:.95rem}
+textarea{font-family:var(--mono);font-size:.8rem}
+.btn{display:inline-block;border:none;background:var(--steel);color:#fff;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:700;margin:4px 4px 4px 0}
+.btn.amber{background:var(--amber)} .btn.ghost{background:transparent;color:var(--steel);border:1px solid var(--steel)} .btn.bad{background:var(--bad)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.qrbox{background:#fff;padding:10px;border-radius:8px;display:inline-block;max-width:100%}
+.qrbox img{display:block;max-width:100%;height:auto;image-rendering:pixelated}
+.stat{font-family:var(--mono);font-size:.82rem;background:var(--ice);padding:8px 10px;border-radius:8px;margin-top:8px;white-space:pre-wrap;overflow-x:auto}
+.log{font-family:var(--mono);font-size:.8rem;border:1px solid var(--line);border-radius:8px;padding:8px;max-height:280px;overflow:auto;white-space:pre-wrap;background:var(--card)}
+.ok{color:var(--ok)} .bad{color:var(--bad)}
+.result{border-radius:12px;padding:12px;margin-top:10px;border:2px solid var(--line)}
+.result.pass{background:var(--okbg);border-color:var(--ok)} .result.fail{background:var(--badbg);border-color:var(--bad)}
+.result img{width:120px;height:auto;border:1px solid var(--line);border-radius:6px;background:#fff}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;font-size:.92rem}
+.kv b{color:var(--muted);font-weight:600}
+.paper{background:#fff;color:#111;border:1px dashed #999;border-radius:8px;padding:14px;max-width:420px}
+.paper h3{margin:0 0 6px;font-size:1rem;color:#1F3864}
+.paper small{color:#444}
+table{border-collapse:collapse;width:100%;font-size:.85rem} th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{background:var(--ice)}
+.note{font-size:.82rem;color:var(--muted)}
+video{max-width:100%;border-radius:8px;border:1px solid var(--line)}
+@media print{ header,nav,.noprint{display:none!important} .paper{border:1px solid #000} body{background:#fff;color:#000} main{padding:0} }
+</style>
+</head>
+<body>
+<header>
+  <h1>오프패스(OffPass) PoC — 모바일신분증 오프라인 파생 증표 시뮬레이터</h1>
+  <p>스마트폰을 꺼도·맡겨도 통하는 모바일신분증: 서명·암호화 QR 파생증표 발급(CBOR → COSE_Sign1/ES256 → HPKE 방식 봉투 → Base45 → QR)과 완전 오프라인 검증을 브라우저 안에서 재현합니다. 서버 통신 없음(WebCrypto).</p>
+</header>
+<main>
+<nav>
+  <button class="active" data-tab="issue">① 발급 시뮬레이터</button>
+  <button data-tab="print">② 출력물 미리보기</button>
+  <button data-tab="verify">③ 오프라인 검증 시뮬레이터</button>
+  <button data-tab="about">④ 설계·보안 속성</button>
+</nav>
+
+<!-- ============ ① 발급 ============ -->
+<section class="tab active" id="tab-issue">
+  <div class="card">
+    <h2>파생증표 발급 (모바일신분증 앱 → 발급서버 역할)</h2>
+    <div class="grid">
+      <div><label>신분증 종류</label><select id="idType"><option value="RRC">주민등록증</option><option value="DL">운전면허증</option><option value="VET">국가보훈등록증</option><option value="DIS">장애인등록증</option><option value="ARC">외국인등록증</option></select></div>
+      <div><label>성명</label><input id="name" value="홍길동"></div>
+      <div><label>생년월일 (YYYYMMDD)</label><input id="birth" value="20080315"></div>
+      <div><label>용도</label><select id="purpose"><option value="EXAM">시험 (EXAM)</option><option value="VISIT">보안시설 방문·담보 (VISIT)</option><option value="EMERG">비상 신원확인 (EMERG)</option></select></div>
+      <div><label>검증기관 (용도·장소 바인딩)</label><select id="vid"></select></div>
+      <div><label>참조번호 (수험번호·방문번호, 선택)</label><input id="ref" value="12345678"></div>
+      <div><label>유효 시작</label><input id="vfrom" type="datetime-local"></div>
+      <div><label>유효 종료</label><input id="vto" type="datetime-local"></div>
+      <div><label>사진 (본인 얼굴 사진 업로드 또는 샘플)</label><input id="photo" type="file" accept="image/*"></div>
+      <div><label>사진 크기</label><select id="psize"><option value="64x80">64×80</option><option value="80x100">80×100</option><option value="96x120" selected>96×120</option><option value="112x140">112×140</option></select></div>
+      <div><label>JPEG 품질 <span id="qv">50</span></label><input id="quality" type="range" min="30" max="70" value="50"></div>
+      <div><label>QR 오류정정 레벨</label><select id="eclvl"><option value="L">L (7%)</option><option value="M" selected>M (15%)</option><option value="Q">Q (25%)</option></select></div>
+    </div>
+    <div style="margin-top:10px">
+      <button class="btn ghost" id="btnSample">샘플 초상 사용(합성)</button>
+      <button class="btn" id="btnIssue">파생증표 발급</button>
+      <span class="note" id="photoNote">사진 미선택 시 합성 샘플 초상이 사용됩니다.</span>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <div><canvas id="pcanvas" width="96" height="120" style="border:1px solid var(--line);background:#fff;border-radius:6px"></canvas><div class="note">축소·그레이 변환 결과</div></div>
+      <div class="qrbox" id="qrout" style="display:none"></div>
+      <div style="flex:1;min-width:260px"><div class="stat" id="stat">발급 전</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ② 출력물 ============ -->
+<section class="tab" id="tab-print">
+  <div class="card noprint"><h2>출력물 미리보기 (셀프 출력형 / 기관 결합형)</h2>
+    <p class="note">종이에는 QR과 최소 안내문만 인쇄됩니다. QR은 지정 검증기관만 복호할 수 있어, 종이를 분실하거나 촬영당해도 신원정보가 노출되지 않습니다.</p>
+    <button class="btn ghost" onclick="window.print()">인쇄</button></div>
+  <div class="paper" id="paper"><h3>모바일신분증 파생 증표 (오프패스)</h3><p>먼저 ① 발급 시뮬레이터에서 증표를 발급하세요.</p></div>
+</section>
+
+<!-- ============ ③ 검증 ============ -->
+<section class="tab" id="tab-verify">
+  <div class="card">
+    <h2>오프라인 검증 (검증앱 오프라인 모드 역할 — 통신 없음)</h2>
+    <div class="grid">
+      <div><label>검증 단말의 기관 (복호키 보유)</label><select id="v_vid"></select></div>
+      <div><label>시뮬레이션 시각</label><input id="v_now" type="datetime-local"></div>
+      <div><label>QR 이미지 업로드 (출력물 촬영본)</label><input id="qrfile" type="file" accept="image/*"></div>
+      <div><label>또는 Base45 텍스트 붙여넣기</label><textarea id="qrtext" rows="2" placeholder="OP1:..."></textarea></div>
+    </div>
+    <div style="margin-top:8px">
+      <button class="btn ghost" id="btnUseIssued">발급 결과 불러오기</button>
+      <button class="btn ghost" id="btnCam">카메라 스캔</button>
+      <button class="btn" id="btnVerify">검증</button>
+      <span class="note">공격 시험:</span>
+      <button class="btn bad" id="btnOther">타 기관 단말로 검증</button>
+      <button class="btn bad" id="btnTamper">변조 후 검증</button>
+      <button class="btn bad" id="btnReplay">동일 증표 재사용</button>
+    </div>
+    <div id="camwrap" style="display:none;margin-top:8px"><video id="video" playsinline muted></video> <button class="btn ghost" id="btnCamStop">중지</button></div>
+    <div class="row" style="margin-top:12px">
+      <div style="flex:1;min-width:280px"><div class="log" id="vlog">검증 로그</div></div>
+      <div style="flex:1;min-width:280px" id="vresult"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ④ 설명 ============ -->
+<section class="tab" id="tab-about">
+  <div class="card"><h2>설계 요약</h2>
+  <table>
+    <tr><th>단계</th><th>내용</th><th>표준·근거</th></tr>
+    <tr><td>① 신원정보 직렬화</td><td>성명·생년월일·축소 사진(JPEG)·참조번호·검증기관ID·용도·유효기간·일련번호를 정수 키 맵으로 직렬화</td><td>CBOR (RFC 8949)</td></tr>
+    <tr><td>② 발급기관 서명</td><td>COSE_Sign1 구조(Sig_structure)에 ES256(ECDSA P-256/SHA-256) 서명 — 사진을 포함한 모든 필드가 서명 대상</td><td>COSE (RFC 9052), EU DCC(HCERT) 구조</td></tr>
+    <tr><td>③ 검증기관 지정 암호화</td><td>검증기관 공개키로 DHKEM(P-256)+HKDF-SHA256 키 유도 → AES-256-GCM 봉투. 지정 기관 외 복호 불가(분실 안전)</td><td>HPKE (RFC 9180) 프리미티브 조합(라벨 간소화)</td></tr>
+    <tr><td>④ 광학 전송</td><td>Base45 → QR 영숫자 모드(접두 “OP1:”). 약 2 KB 봉투가 단일 QR(버전 33~38)에 수용</td><td>Base45 (RFC 9285), ISO/IEC 18004</td></tr>
+    <tr><td>⑤ 오프라인 검증</td><td>복호 → 서명 검증(사전 캐시된 발급기관 공개키) → 기관 바인딩 → 유효기간 → 일련번호 1회성 → 서명된 사진 표시·육안 대조</td><td>ICAO VDS-NC(종이 서명 바코드), ISO/IEC 18013-5 발급자 서명 구조</td></tr>
+  </table>
+  <h2 style="margin-top:14px">형식 검증(ProVerif) 결과 요약</h2>
+  <table>
+    <tr><th>속성</th><th>질의</th><th>결과</th></tr>
+    <tr><td>G1 개인정보 기밀성</td><td>종이 QR이 공개되고 타 검증기관(V2) 키가 유출되어도 공격자가 성명·생년월일·사진을 얻을 수 없음</td><td class="ok">증명됨(true)</td></tr>
+    <tr><td>G2 위조 불가</td><td>검증기관이 수락한 모든 증표는 발급기관이 해당 기관용으로 발급한 것</td><td class="ok">증명됨(true)</td></tr>
+    <tr><td>G3 기관 바인딩</td><td>유출된 기관(V2)용 증표를 재암호화해 정상 기관(V1)에 제시해도 수락되지 않음</td><td class="ok">증명됨(true)</td></tr>
+    <tr><td>(대조) 바인딩 제거 변형</td><td>서명 대상에 기관ID를 넣지 않은 설계</td><td class="bad">공격 경로 발견(false) — 재암호화 세탁 공격</td></tr>
+  </table>
+  <p class="note">본 페이지는 개념검증용 시뮬레이터로, 실제 서비스에서는 발급기관 서명키·검증기관 복호키를 HSM/단말 보안영역에 보관하고 폐기목록(일련번호)을 검증앱에 주기적으로 배포합니다. 시뮬레이터의 키는 브라우저 세션마다 새로 생성됩니다.</p>
+  </div>
+</section>
+</main>
+
+<script>
+/* ======================= 공통 유틸 ======================= */
+const $ = s => document.querySelector(s);
+const enc = new TextEncoder(), dec = new TextDecoder();
+const VERIFIERS = [
+  {id:"KICE-CSAT-2027", name:"한국교육과정평가원 — 2027학년도 수능 시험장"},
+  {id:"KMA-GATE-01", name:"육군사관학교 위병소 (방문·담보)"},
+  {id:"HOSP-OR-07", name:"○○병원 수술실·MRI 구역 (예시)"},
+];
+function nowLocal(d){ const p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+function toEpoch(v){ return Math.floor(new Date(v).getTime()/1000); }
+function fmtEpoch(e){ const d=new Date(e*1000); return nowLocal(d).replace("T"," "); }
+function hex(u8){ return [...u8].map(b=>b.toString(16).padStart(2,"0")).join(""); }
+function concat(...arrs){ const n=arrs.reduce((a,b)=>a+b.length,0); const o=new Uint8Array(n); let i=0; for(const a of arrs){o.set(a,i); i+=a.length;} return o; }
+function u8eq(a,b){ if(a.length!==b.length) return false; for(let i=0;i<a.length;i++) if(a[i]!==b[i]) return false; return true; }
+
+/* ======================= Base45 (RFC 9285) ======================= */
+const B45="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
+function b45enc(u8){ let o=""; for(let i=0;i<u8.length;i+=2){ if(i+1<u8.length){ let n=u8[i]*256+u8[i+1]; const e=n%45; n=Math.floor(n/45); const d=n%45; const c=Math.floor(n/45); o+=B45[e]+B45[d]+B45[c]; } else { let n=u8[i]; const d=n%45; const c=Math.floor(n/45); o+=B45[d]+B45[c]; } } return o; }
+function b45dec(s){ const v=[...s].map(ch=>{const i=B45.indexOf(ch); if(i<0) throw new Error("Base45 문자 오류: '"+ch+"'"); return i;}); const o=[]; for(let i=0;i<v.length;i+=3){ if(i+2<v.length){ const n=v[i]+v[i+1]*45+v[i+2]*2025; if(n>65535) throw new Error("Base45 범위 오류"); o.push(n>>8, n&255);} else if(i+1<v.length){ const n=v[i]+v[i+1]*45; if(n>255) throw new Error("Base45 범위 오류"); o.push(n);} else throw new Error("Base45 길이 오류"); } return new Uint8Array(o); }
+
+/* ======================= 최소 CBOR (RFC 8949) ======================= */
+function cborEncode(v){ const out=[]; (function w(x){
+  const hdr=(maj,n)=>{ if(n<24) out.push(maj<<5|n); else if(n<256) out.push(maj<<5|24,n); else if(n<65536) out.push(maj<<5|25,n>>8,n&255); else out.push(maj<<5|26,(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255); };
+  if(x===null) out.push(0xf6); else if(x===true) out.push(0xf5); else if(x===false) out.push(0xf4);
+  else if(typeof x==="number"){ if(!Number.isInteger(x)) throw new Error("정수만 지원"); if(x>=0) hdr(0,x); else hdr(1,-1-x); }
+  else if(x instanceof Uint8Array){ hdr(2,x.length); out.push(...x); }
+  else if(typeof x==="string"){ const b=enc.encode(x); hdr(3,b.length); out.push(...b); }
+  else if(Array.isArray(x)){ hdr(4,x.length); x.forEach(w); }
+  else if(x && x.__tag!==undefined){ hdr(6,x.__tag); w(x.value); }
+  else if(x instanceof Map){ hdr(5,x.size); for(const [k,val] of x){ w(k); w(val);} }
+  else if(typeof x==="object"){ const ks=Object.keys(x); hdr(5,ks.length); for(const k of ks){ w(/^-?\d+$/.test(k)?parseInt(k):k); w(x[k]); } }
+  else throw new Error("CBOR 미지원 타입");
+})(v); return new Uint8Array(out); }
+function cborDecode(u8){ let p=0; function rd(){ const ib=u8[p++]; const maj=ib>>5, ai=ib&31; let n;
+  if(ai<24) n=ai; else if(ai===24) n=u8[p++]; else if(ai===25){n=u8[p]<<8|u8[p+1]; p+=2;} else if(ai===26){n=((u8[p]<<24)>>>0)+(u8[p+1]<<16)+(u8[p+2]<<8)+u8[p+3]; p+=4;} else if(maj===7){ if(ai===20) return false; if(ai===21) return true; if(ai===22) return null; throw new Error("CBOR simple 미지원"); } else throw new Error("CBOR 길이 미지원");
+  switch(maj){ case 0: return n; case 1: return -1-n; case 2: { const b=u8.slice(p,p+n); p+=n; return b; } case 3: { const s=dec.decode(u8.slice(p,p+n)); p+=n; return s; }
+    case 4: { const a=[]; for(let i=0;i<n;i++) a.push(rd()); return a; } case 5: { const m=new Map(); for(let i=0;i<n;i++){ const k=rd(); m.set(k,rd()); } return m; }
+    case 6: return {__tag:n, value:rd()}; case 7: return n; } }
+  const v=rd(); if(p!==u8.length) throw new Error("CBOR 잔여 바이트"); return v; }
+
+/* ======================= 키 (세션 생성) ======================= */
+const KEYS={ issuer:null, issuerPub:null, issuerKid:null, verifiers:{} };
+async function setupKeys(){
+  KEYS.issuer = await crypto.subtle.generateKey({name:"ECDSA",namedCurve:"P-256"},true,["sign","verify"]);
+  KEYS.issuerPub = new Uint8Array(await crypto.subtle.exportKey("raw",KEYS.issuer.publicKey));
+  KEYS.issuerKid = new Uint8Array(await crypto.subtle.digest("SHA-256",KEYS.issuerPub)).slice(0,4);
+  for(const v of VERIFIERS){ const kp=await crypto.subtle.generateKey({name:"ECDH",namedCurve:"P-256"},true,["deriveBits"]); const raw=new Uint8Array(await crypto.subtle.exportKey("raw",kp.publicKey)); const kid=new Uint8Array(await crypto.subtle.digest("SHA-256",raw)).slice(0,4); KEYS.verifiers[v.id]={kp,raw,kid}; }
+}
+async function hkdfAesKey(shared, info){ const base=await crypto.subtle.importKey("raw",shared,"HKDF",false,["deriveKey"]); return crypto.subtle.deriveKey({name:"HKDF",hash:"SHA-256",salt:new Uint8Array(0),info},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]); }
+
+/* ======================= COSE_Sign1 ======================= */
+async function coseSign1(payload){
+  const protectedHdr = cborEncode(new Map([[1,-7],[4,KEYS.issuerKid]]));           // alg=ES256, kid
+  const sigStructure = cborEncode(["Signature1", protectedHdr, new Uint8Array(0), payload]);
+  const sig = new Uint8Array(await crypto.subtle.sign({name:"ECDSA",hash:"SHA-256"},KEYS.issuer.privateKey,sigStructure)); // raw r||s 64B
+  return cborEncode({__tag:18, value:[protectedHdr, new Map(), payload, sig]});
+}
+async function coseVerify1(msg, log){
+  const t=cborDecode(msg); if(!t||t.__tag!==18) throw new Error("COSE_Sign1 태그(18) 아님");
+  const [prot,,payload,sig]=t.value; const hdr=cborDecode(prot);
+  if(hdr.get(1)!==-7) throw new Error("알고리즘 불일치(ES256 아님)");
+  if(!u8eq(hdr.get(4),KEYS.issuerKid)) throw new Error("발급기관 키ID 불일치");
+  const pub=await crypto.subtle.importKey("raw",KEYS.issuerPub,{name:"ECDSA",namedCurve:"P-256"},false,["verify"]);
+  const sigStructure=cborEncode(["Signature1",prot,new Uint8Array(0),payload]);
+  const ok=await crypto.subtle.verify({name:"ECDSA",hash:"SHA-256"},pub,sig,sigStructure);
+  if(!ok) throw new Error("발급기관 서명 검증 실패(위·변조)");
+  log("서명 검증 성공 (ES256, kid="+hex(KEYS.issuerKid)+")","ok");
+  return payload;
+}
+
+/* ======================= HPKE 방식 봉투 ======================= */
+async function envelopeEncrypt(plain, vid){
+  const V=KEYS.verifiers[vid]; const eph=await crypto.subtle.generateKey({name:"ECDH",namedCurve:"P-256"},true,["deriveBits"]);
+  const encPub=new Uint8Array(await crypto.subtle.exportKey("raw",eph.publicKey));
+  const shared=await crypto.subtle.deriveBits({name:"ECDH",public:(await crypto.subtle.importKey("raw",V.raw,{name:"ECDH",namedCurve:"P-256"},false,[]))},eph.privateKey,256);
+  const info=concat(enc.encode("OffPass-v1|"+vid+"|"),encPub,enc.encode("|"),V.raw);
+  const key=await hkdfAesKey(shared,info); const nonce=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv:nonce,additionalData:enc.encode("OffPass-v1")},key,plain));
+  return cborEncode([1,V.kid,encPub,nonce,ct]);
+}
+async function envelopeDecrypt(env, vid, log){
+  const arr=cborDecode(env); if(!Array.isArray(arr)||arr.length!==5) throw new Error("봉투 구조 오류");
+  const [ver,kid,encPub,nonce,ct]=arr; const V=KEYS.verifiers[vid];
+  log(`봉투 파싱: ver=${ver}, 대상기관 kid=${hex(kid)}, enc=${encPub.length}B, ct=${ct.length}B`);
+  if(!u8eq(kid,V.kid)) throw new Error("검증기관 불일치 — 이 단말("+vid+")용 증표가 아님 (kid "+hex(V.kid)+")");
+  const ephKey=await crypto.subtle.importKey("raw",encPub,{name:"ECDH",namedCurve:"P-256"},false,[]);
+  const shared=await crypto.subtle.deriveBits({name:"ECDH",public:ephKey},V.kp.privateKey,256);
+  const info=concat(enc.encode("OffPass-v1|"+vid+"|"),encPub,enc.encode("|"),V.raw);
+  const key=await hkdfAesKey(shared,info);
+  try{ const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:nonce,additionalData:enc.encode("OffPass-v1")},key,ct); log("AES-256-GCM 복호 성공 (무결성 태그 확인)","ok"); return new Uint8Array(pt); }
+  catch(e){ throw new Error("복호 실패 — 변조되었거나 다른 기관용 증표"); }
+}
+
+/* ======================= 사진 처리 ======================= */
+let photoImg=null;
+function drawSample(ctx,w,h){ // 합성 초상(실존 인물 아님): 실측 목적의 질감 포함
+  const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,"#d9d9d9"); g.addColorStop(1,"#9a9a9a"); ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle="#555"; ctx.beginPath(); ctx.ellipse(w/2,h*0.95,w*0.42,h*0.32,0,0,Math.PI*2); ctx.fill();   // 어깨
+  ctx.fillStyle="#bdb0a0"; ctx.beginPath(); ctx.ellipse(w/2,h*0.42,w*0.27,h*0.30,0,0,Math.PI*2); ctx.fill(); // 얼굴
+  ctx.fillStyle="#3a3a3a"; ctx.beginPath(); ctx.ellipse(w/2,h*0.18,w*0.29,h*0.12,0,Math.PI,Math.PI*2); ctx.fill(); // 머리
+  ctx.fillStyle="#222"; ctx.beginPath(); ctx.ellipse(w*0.40,h*0.40,w*0.035,h*0.025,0,0,Math.PI*2); ctx.ellipse(w*0.60,h*0.40,w*0.035,h*0.025,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle="#6a4b3a"; ctx.lineWidth=1.2; ctx.beginPath(); ctx.arc(w/2,h*0.50,w*0.08,0.15*Math.PI,0.85*Math.PI); ctx.stroke();
+  const id=ctx.getImageData(0,0,w,h); for(let i=0;i<id.data.length;i+=4){ const n=(Math.random()-0.5)*22; id.data[i]+=n; id.data[i+1]+=n; id.data[i+2]+=n; } ctx.putImageData(id,0,0);
+}
+async function renderPhoto(){
+  const [w,h]=$("#psize").value.split("x").map(Number); const c=$("#pcanvas"); c.width=w; c.height=h; const ctx=c.getContext("2d");
+  if(photoImg){ const s=Math.max(w/photoImg.width,h/photoImg.height); const dw=photoImg.width*s, dh=photoImg.height*s; ctx.drawImage(photoImg,(w-dw)/2,(h-dh)/2,dw,dh); }
+  else drawSample(ctx,w,h);
+  const id=ctx.getImageData(0,0,w,h); for(let i=0;i<id.data.length;i+=4){ const y=0.299*id.data[i]+0.587*id.data[i+1]+0.114*id.data[i+2]; id.data[i]=id.data[i+1]=id.data[i+2]=y; } ctx.putImageData(id,0,0);
+  const q=parseInt($("#quality").value)/100;
+  const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",q)); return new Uint8Array(await blob.arrayBuffer());
+}
+
+/* ======================= 발급 ======================= */
+let ISSUED=null; // {text, cred, vid}
+async function issue(){
+  const t0=performance.now(); const vid=$("#vid").value;
+  const photo=await renderPhoto();
+  const cred=new Map([[1,1],[2,$("#idType").value],[3,$("#name").value],[4,$("#birth").value],[5,photo],[6,$("#ref").value],[7,vid],[8,$("#purpose").value],[9,toEpoch($("#vfrom").value)],[10,toEpoch($("#vto").value)],[11,crypto.getRandomValues(new Uint8Array(8))],[12,Math.floor(Date.now()/1000)]]);
+  const payload=cborEncode(cred); const signed=await coseSign1(payload); const env=await envelopeEncrypt(signed,vid);
+  const text="OP1:"+b45enc(env);
+  const qr=qrcode(0,$("#eclvl").value); let ok=true; try{ qr.addData(text,"Alphanumeric"); qr.make(); }catch(e){ ok=false; }
+  const t1=performance.now();
+  if(!ok){ $("#stat").textContent=`QR 용량 초과: Base45 ${text.length}자 — 사진 크기/품질 또는 오류정정 레벨을 낮추세요.`; $("#qrout").style.display="none"; return; }
+  const cell=Math.max(2,Math.floor(320/qr.getModuleCount()));
+  $("#qrout").innerHTML=qr.createImgTag(cell,8); $("#qrout").style.display="inline-block";
+  ISSUED={text,cred,vid,qrVersion:qr.getModuleCount()?((qr.getModuleCount()-17)/4):0,modules:qr.getModuleCount()};
+  $("#stat").textContent=
+`사진 JPEG      : ${photo.length.toLocaleString()} B (${$("#psize").value}, q${$("#quality").value}, grayscale)
+신원정보 CBOR  : ${payload.length.toLocaleString()} B
+COSE_Sign1     : ${signed.length.toLocaleString()} B (ES256 서명 64B 포함)
+HPKE 방식 봉투 : ${env.length.toLocaleString()} B (enc 65B + nonce 12B + GCM 태그 16B)
+Base45 텍스트  : ${text.length.toLocaleString()} 자 (접두 OP1:)
+QR             : 버전 ${ISSUED.qrVersion} / EC-${$("#eclvl").value} / ${qr.getModuleCount()}×${qr.getModuleCount()} 모듈
+발급 소요      : ${(t1-t0).toFixed(1)} ms (브라우저 WebCrypto)
+검증기관       : ${vid} (이 기관 외 복호 불가)
+일련번호       : ${hex(cred.get(11))}`;
+  renderPaper();
+}
+function renderPaper(){
+  if(!ISSUED) return; const c=ISSUED.cred; const v=VERIFIERS.find(x=>x.id===ISSUED.vid);
+  const nm=c.get(3); const masked=nm.length>2? nm[0]+"＊".repeat(nm.length-2)+nm[nm.length-1] : nm[0]+"＊";
+  const purpose={EXAM:"시험 응시자 신원확인",VISIT:"보안시설 방문·임시출입증 담보",EMERG:"비상 신원확인"}[c.get(8)];
+  $("#paper").innerHTML=`<h3>모바일신분증 파생 증표 (오프패스)</h3>
+  <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+    <div style="background:#fff">${$("#qrout").innerHTML}</div>
+    <div style="font-size:.9rem">
+      <div><b>용도</b> ${purpose}</div>
+      <div><b>검증기관</b> ${v.name}</div>
+      <div><b>유효기간</b> ${fmtEpoch(c.get(9))} ~ ${fmtEpoch(c.get(10))}</div>
+      <div><b>성명</b> ${masked} &nbsp; <b>참조번호</b> ${c.get(6)||"-"}</div>
+      <div><b>증표번호</b> ${hex(c.get(11)).toUpperCase()}</div>
+      <small>※ 이 QR은 지정 검증기관의 단말에서만 읽을 수 있으며, 유효기간이 지나면 무효가 됩니다. 종이에는 신원정보가 인쇄되지 않습니다.<br>※ 검증 시 QR에서 복원된 ‘서명된 사진’과 본인을 대조합니다.</small>
+    </div></div>`;
+}
+
+/* ======================= 검증 ======================= */
+const USED=new Set();
+function vlog(msg,cls){ const el=$("#vlog"); const d=document.createElement("div"); if(cls) d.className=cls; d.textContent=(cls==="ok"?"✔ ":cls==="bad"?"✘ ":"· ")+msg; el.appendChild(d); el.scrollTop=el.scrollHeight; }
+function showResult(ok, data){ const r=$("#vresult"); if(!ok){ r.innerHTML=`<div class="result fail"><b>검증 실패</b><div>${data}</div></div>`; return; }
+  const c=data; const blob=new Blob([c.get(5)],{type:"image/jpeg"}); const url=URL.createObjectURL(blob);
+  const idn={RRC:"주민등록증",DL:"운전면허증",VET:"국가보훈등록증",DIS:"장애인등록증",ARC:"외국인등록증"}[c.get(2)]||c.get(2);
+  r.innerHTML=`<div class="result pass"><b>검증 성공 — 서명된 사진과 본인을 육안 대조하세요</b>
+   <div class="row" style="margin-top:8px"><img src="${url}" alt="서명된 사진"><div class="kv">
+   <b>신분증</b><span>${idn}</span><b>성명</b><span>${c.get(3)}</span><b>생년월일</b><span>${c.get(4)}</span><b>참조번호</b><span>${c.get(6)||"-"}</span>
+   <b>용도/기관</b><span>${c.get(8)} / ${c.get(7)}</span><b>유효기간</b><span>${fmtEpoch(c.get(9))} ~ ${fmtEpoch(c.get(10))}</span><b>증표번호</b><span>${hex(c.get(11)).toUpperCase()}</span></div></div></div>`; }
+async function verify(text, vid, nowEpoch){
+  $("#vlog").innerHTML=""; $("#vresult").innerHTML=""; const t0=performance.now();
+  try{
+    if(!text||!text.startsWith("OP1:")) throw new Error("오프패스 접두(OP1:) 없음");
+    const env=b45dec(text.slice(4)); vlog(`Base45 디코딩: ${text.length}자 → ${env.length}B`);
+    const signed=await envelopeDecrypt(env,vid,vlog);
+    const payload=await coseVerify1(signed,vlog);
+    const c=cborDecode(payload);
+    if(c.get(7)!==vid) throw new Error("기관 바인딩 불일치: 증표="+c.get(7)+", 단말="+vid);
+    vlog("기관 바인딩 일치: "+vid,"ok");
+    if(!(c.get(9)<=nowEpoch && nowEpoch<=c.get(10))) throw new Error(`유효기간 외 (${fmtEpoch(c.get(9))} ~ ${fmtEpoch(c.get(10))})`);
+    vlog("유효기간 이내","ok");
+    const serial=hex(c.get(11)); if(USED.has(vid+"|"+serial)) throw new Error("이미 사용된 증표(일련번호 "+serial.toUpperCase()+") — 재사용 거부");
+    USED.add(vid+"|"+serial); vlog("일련번호 1회성 확인 및 소진 등록","ok");
+    vlog(`검증 완료: ${(performance.now()-t0).toFixed(1)} ms (통신 없음)`,"ok");
+    showResult(true,c);
+  }catch(e){ vlog(e.message,"bad"); showResult(false,e.message); }
+}
+async function decodeImageFile(file){
+  const img=new Image(); img.src=URL.createObjectURL(file); await img.decode();
+  const c=document.createElement("canvas"); const scale=Math.min(1,1600/Math.max(img.width,img.height)); c.width=Math.round(img.width*scale); c.height=Math.round(img.height*scale);
+  const ctx=c.getContext("2d"); ctx.drawImage(img,0,0,c.width,c.height); const id=ctx.getImageData(0,0,c.width,c.height);
+  const r=jsQR(id.data,c.width,c.height,{inversionAttempts:"dontInvert"}); return r?r.data:null;
+}
+let camStream=null, camTimer=null;
+async function startCam(){ try{ camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}); const v=$("#video"); v.srcObject=camStream; await v.play(); $("#camwrap").style.display="block";
+  const c=document.createElement("canvas"); camTimer=setInterval(()=>{ if(v.videoWidth===0) return; c.width=v.videoWidth; c.height=v.videoHeight; const ctx=c.getContext("2d"); ctx.drawImage(v,0,0); const id=ctx.getImageData(0,0,c.width,c.height); const r=jsQR(id.data,c.width,c.height,{inversionAttempts:"dontInvert"}); if(r&&r.data){ $("#qrtext").value=r.data; stopCam(); verify(r.data,$("#v_vid").value,toEpoch($("#v_now").value)); } },300);
+  }catch(e){ alert("카메라를 사용할 수 없습니다(권한 또는 뷰어 제한). 이미지 업로드 또는 ‘발급 결과 불러오기’를 사용하세요."); } }
+function stopCam(){ if(camTimer) clearInterval(camTimer); camTimer=null; if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; } $("#camwrap").style.display="none"; }
+
+/* ======================= 초기화·이벤트 ======================= */
+(async function init(){
+  for(const v of VERIFIERS){ for(const sel of ["#vid","#v_vid"]){ const o=document.createElement("option"); o.value=v.id; o.textContent=`${v.id} — ${v.name}`; $(sel).appendChild(o);} }
+  const d=new Date(); const from=new Date(d); from.setHours(6,0,0,0); const to=new Date(d); to.setHours(18,0,0,0);
+  $("#vfrom").value=nowLocal(from); $("#vto").value=nowLocal(to); $("#v_now").value=nowLocal(d);
+  await setupKeys(); await renderPhoto();
+  document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{ document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active")); b.classList.add("active"); document.querySelectorAll("section.tab").forEach(s=>s.classList.remove("active")); $("#tab-"+b.dataset.tab).classList.add("active"); if(b.dataset.tab!=="verify") stopCam(); }));
+  $("#quality").addEventListener("input",()=>{ $("#qv").textContent=$("#quality").value; renderPhoto(); });
+  $("#psize").addEventListener("change",renderPhoto);
+  $("#photo").addEventListener("change",async e=>{ const f=e.target.files[0]; if(!f) return; const im=new Image(); im.src=URL.createObjectURL(f); await im.decode(); photoImg=im; $("#photoNote").textContent="업로드한 사진을 사용합니다 (브라우저 밖으로 전송되지 않음)."; renderPhoto(); });
+  $("#btnSample").addEventListener("click",()=>{ photoImg=null; $("#photo").value=""; $("#photoNote").textContent="합성 샘플 초상을 사용합니다."; renderPhoto(); });
+  $("#btnIssue").addEventListener("click",issue);
+  $("#btnUseIssued").addEventListener("click",()=>{ if(!ISSUED){ alert("먼저 발급하세요."); return; } $("#qrtext").value=ISSUED.text; $("#v_vid").value=ISSUED.vid; });
+  $("#btnVerify").addEventListener("click",async()=>{ let text=$("#qrtext").value.trim(); const f=$("#qrfile").files[0]; if(f){ text=await decodeImageFile(f); if(!text){ $("#vlog").innerHTML=""; vlog("이미지에서 QR을 찾지 못했습니다(해상도·초점 확인).","bad"); showResult(false,"QR 인식 실패"); return; } $("#qrtext").value=text; $("#qrfile").value=""; } verify(text,$("#v_vid").value,toEpoch($("#v_now").value)); });
+  $("#btnOther").addEventListener("click",()=>{ if(!ISSUED){ alert("먼저 발급하세요."); return; } const other=VERIFIERS.find(v=>v.id!==ISSUED.vid).id; $("#v_vid").value=other; $("#qrtext").value=ISSUED.text; verify(ISSUED.text,other,toEpoch($("#v_now").value)); });
+  $("#btnTamper").addEventListener("click",()=>{ if(!ISSUED){ alert("먼저 발급하세요."); return; } const t=ISSUED.text; const i=t.length-20; const ch=t[i]==="A"?"B":"A"; const bad=t.slice(0,i)+ch+t.slice(i+1); $("#v_vid").value=ISSUED.vid; $("#qrtext").value=bad; verify(bad,ISSUED.vid,toEpoch($("#v_now").value)); });
+  $("#btnReplay").addEventListener("click",async()=>{ if(!ISSUED){ alert("먼저 발급하세요."); return; } $("#v_vid").value=ISSUED.vid; $("#qrtext").value=ISSUED.text; await verify(ISSUED.text,ISSUED.vid,toEpoch($("#v_now").value)); await new Promise(r=>setTimeout(r,600)); const l=$("#vlog"); const d=document.createElement("div"); d.textContent="— 같은 증표를 다시 스캔 —"; l.appendChild(d); const keep=l.innerHTML; await verify(ISSUED.text,ISSUED.vid,toEpoch($("#v_now").value)); $("#vlog").innerHTML=keep+$("#vlog").innerHTML; });
+  $("#btnCam").addEventListener("click",startCam); $("#btnCamStop").addEventListener("click",stopCam);
+})();
+</script>
+</body>
+</html>
